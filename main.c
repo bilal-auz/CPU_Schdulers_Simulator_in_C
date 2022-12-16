@@ -262,9 +262,65 @@ void End_Program()
     printf("End Program");
 }
 
+int countProcesses(struct Process *process_head)
+{
+    int count = 0;
+    struct Process *process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        count++;
+        process_current = process_current->next;
+    }
+
+    return count;
+}
+struct Process *sortProcesses(struct Process *process_head)
+{
+    struct Process *process_current;
+    struct Process *process_next;
+
+    process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        process_next = process_current->next;
+        while (process_next != NULL)
+        {
+            if (process_current->arrival_time > process_next->arrival_time)
+            {
+                int brust_time, arrival_time, priority;
+
+                brust_time = process_current->brust_time;
+                arrival_time = process_current->arrival_time;
+                priority = process_current->priority;
+
+                process_current->arrival_time = process_next->arrival_time;
+                process_current->brust_time = process_next->brust_time;
+                process_current->priority = process_next->priority;
+
+                process_next->arrival_time = arrival_time;
+                process_next->brust_time = brust_time;
+                process_next->priority = priority;
+            }
+            process_next = process_next->next;
+        }
+        process_current = process_current->next;
+    }
+    process_current = process_head;
+    while (process_current != NULL)
+    {
+        printf("%d:%d:%d\n", process_current->brust_time, process_current->arrival_time, process_current->priority);
+        process_current = process_current->next;
+        getch();
+    }
+    return process_head;
+}
+
 int main(int argc, char const *argv[])
 {
     int i; // for iterations;
+    int count;
     char *tempChars;
     tempChars = (char *)malloc(10 * sizeof(char));
 
@@ -275,7 +331,6 @@ int main(int argc, char const *argv[])
 
     struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
     struct Process *process_current;                                                 // stores current process
-    int PreemptiveMode = 0;                                                          // 1: PreemptiveMode, 0: Non-preemptiveMode
 
     if (argc <= 1) // check if any command arguments passed
     {
@@ -308,6 +363,8 @@ int main(int argc, char const *argv[])
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
     run->Scheduling_Method = NONE;
     run->Preemtive_Mode = 0;
+
+    struct Process *p;
 
     while (1)
     {
