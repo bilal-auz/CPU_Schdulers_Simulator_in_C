@@ -30,9 +30,10 @@ struct InputChar
 struct Run
 {
     ScheduleMethod Scheduling_Method;
-    int Preemtive_Mode;
+    int Preemtive_Mode;  // 0: off, 1: on
     float Avg_Wait_Time; // average wating time for all jobs
 };
+
 FILE *openFile(const char fileName[])
 {
     FILE *file = fopen(fileName, "r");
@@ -44,6 +45,7 @@ FILE *openFile(const char fileName[])
 
     return file;
 }
+
 struct Process *readProcesses(FILE *InputFile)
 {
     struct InputChar *head_input = (struct InputChar *)malloc(sizeof(struct InputChar));    // store the first input
@@ -150,6 +152,7 @@ struct Process *readProcesses(FILE *InputFile)
 
     return process_head;
 }
+
 const char *get_scheduling_method_name(ScheduleMethod method)
 {
     SJF,    // Shortest-Job-First
@@ -175,6 +178,88 @@ const char *get_scheduling_method_name(ScheduleMethod method)
     default:
         break;
     }
+}
+
+ScheduleMethod Set_Scheduling_Method()
+{
+    char choice;
+    while (1)
+    {
+        system("cls");
+        printf("1) NONE\n2)First-Come First-Served(FCFS)\n3)Shortest-Job-First(SJF)4)Priority Scheduling(PS)\n5)Round-Robin(RRS)\nOption >");
+        scanf(" %c", &choice);
+
+        switch (choice)
+        {
+        case '1':
+            return NONE;
+            break;
+        case '2':
+            return FCFS;
+            break;
+        case '3':
+            return SJF;
+            break;
+        case '4':
+            return PS;
+            break;
+        case '5':
+            return RRS;
+            break;
+        default:
+            printf("wrong option");
+            break;
+        }
+    }
+}
+
+int Set_Preemtive_Mode(ScheduleMethod currentMethod)
+{
+    if (currentMethod == FCFS)
+    {
+        system("cls");
+        printf("FCFS only supports Non-Preemprive Mode(Off)\nPress any key to go back..");
+        getch();
+        return 0;
+    }
+
+    if (currentMethod == RRS)
+    {
+        system("cls");
+        printf("RR only supports Preemprive Mode(On)\nPress any key to go back..");
+        getch();
+        return 1;
+    }
+    system("cls");
+    while (1)
+    {
+        char choice;
+        printf("1)On\n2)Off\nOption >");
+        scanf(" %c", &choice);
+
+        switch (choice)
+        {
+        case '1':
+            return 1;
+            break;
+        case '2':
+            return 0;
+            break;
+        default:
+            printf("wrong option...");
+            break;
+        }
+    }
+}
+
+void Show_Result(struct Process *head)
+{
+    printf("Show Results");
+}
+
+void End_Program()
+{
+    printf("End Program");
 }
 
 int main(int argc, char const *argv[])
@@ -221,7 +306,7 @@ int main(int argc, char const *argv[])
     }
 
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
-    run->Scheduling_Method = FCFS;
+    run->Scheduling_Method = NONE;
     run->Preemtive_Mode = 0;
 
     while (1)
@@ -239,31 +324,28 @@ int main(int argc, char const *argv[])
         switch (choice)
         {
         case '1':
-            printf("sch");
-            // run->Scheduling_Method = Set_Scheduling_Method();
+            run->Scheduling_Method = Set_Scheduling_Method();
+
+            run->Scheduling_Method == FCFS ? run->Preemtive_Mode = 0 : 1;
+            run->Scheduling_Method == RRS ? run->Preemtive_Mode = 1 : 0;
+
             break;
         case '2':
-            printf("pree");
-            // run->Preemptive = Set_Preemtive_Mode();
+            run->Preemtive_Mode = Set_Preemtive_Mode(run->Scheduling_Method);
             break;
         case '3':
             printf("Show");
-            // Show_Result();
             break;
         case '4':
             printf("end");
-            // End_Program();
-            break;
+            // break; // no break because after this option exit program(option q);
         case 'q':
             exit(0);
             break;
         default:
             printf("Wrong Option");
-            // choice = 0;
             break;
         }
-
-        scanf("%s");
     }
 
     // free the allocated memory
