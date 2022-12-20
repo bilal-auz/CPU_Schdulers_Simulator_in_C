@@ -32,6 +32,7 @@ struct Run
     ScheduleMethod Scheduling_Method;
     int Preemtive_Mode;  // 0: off, 1: on
     float Avg_Wait_Time; // average wating time for all jobs
+    int total_brust;     // total brust time for processes
 };
 
 FILE *openFile(const char fileName[])
@@ -153,11 +154,46 @@ struct Process *readProcesses(FILE *InputFile)
     return process_head;
 }
 
+// binary sorting the processes based on arrival time
+struct Process *sortProcesses(struct Process *process_head)
+{
+    struct Process *process_current;
+    struct Process *process_next;
+
+    process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        process_next = process_current->next;
+        while (process_next != NULL)
+        {
+            if (process_current->arrival_time > process_next->arrival_time)
+            {
+                int brust_time, arrival_time, priority;
+
+                brust_time = process_current->brust_time;
+                arrival_time = process_current->arrival_time;
+                priority = process_current->priority;
+
+                process_current->arrival_time = process_next->arrival_time;
+                process_current->brust_time = process_next->brust_time;
+                process_current->priority = process_next->priority;
+
+                process_next->arrival_time = arrival_time;
+                process_next->brust_time = brust_time;
+                process_next->priority = priority;
+            }
+            process_next = process_next->next;
+        }
+        process_current = process_current->next;
+    }
+
+    return process_head;
+}
+
 const char *get_scheduling_method_name(ScheduleMethod method)
 {
-    SJF,    // Shortest-Job-First
-        PS, // priority scheduling
-        RRS;
+
     switch (method)
     {
     case NONE:
@@ -257,9 +293,106 @@ void Show_Result(struct Process *head)
     printf("Show Results");
 }
 
-void End_Program()
+// caculate the brust time of all processes
+int calculate_brust_time(struct Process *process_head)
 {
-    printf("End Program");
+    struct Process *process = process_head;
+    int total_brust_time = 0;
+    while (process != NULL)
+    {
+        total_brust_time += process->brust_time;
+        process = process->next;
+    }
+
+    return total_brust_time;
+}
+
+// caculate the avg wating time for all the processes(called after going through the scheduler)
+float calculate_avg_wating_time(struct Process *process_head)
+{
+    struct Process *process = process_head;
+
+    int total_wating_time = 0;
+    int count = 0;
+
+    while (process != NULL)
+    {
+        count++;
+        total_wating_time += process->wait_time;
+        process = process->next;
+    }
+
+    return total_wating_time / count;
+}
+
+// FCFS main scheduler function
+void First_Come_First_Served(struct Run *run, struct Process *process_head)
+{
+    struct Process *process = process_head;
+
+    int progress = 0;
+
+    run->total_brust = calculate_brust_time(process); // get the total brust time for all processes
+
+    /**
+     * FCFS scheduler algorithm works as follow
+     * it uses the progress variable to track the brust progress.
+     * so the process wating time will always be: the current progress - the process arrival time
+     */
+    while (process != NULL)
+    {
+        process->wait_time = progress - process->arrival_time;
+
+        progress += process->brust_time;
+
+        process = process->next;
+    }
+
+    if (progress == run->total_brust) // if no errors
+    {
+        process = process_head;
+
+        run->Avg_Wait_Time = calculate_avg_wating_time(process);
+    }
+}
+
+void End_Program(struct Run *run, struct Process *process_head)
+{
+    system("cls");
+
+    struct Process *sortedProcesses = sortProcesses(process_head); // sorting the processes
+    int count = 0;                                                 // counter to add the number of each process
+
+    // print the headers
+    printf("Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
+    printf("- Preemptive Mode: %s\n", (run->Preemtive_Mode == 0 ? " Off " : " On "));
+
+    switch (run->Scheduling_Method)
+    {
+    case FCFS:
+        First_Come_First_Served(run, sortedProcesses);
+        break;
+    case SJF:
+        break;
+    case PS:
+        /* code */
+        break;
+    case RRS:
+        /* code */
+        break;
+    default:
+        printf("Choose a scheduling method");
+        break;
+    }
+
+    // printing the output after implementing the scheduling
+    while (sortedProcesses != NULL)
+    {
+        printf("P%d: %d ms\n", ++count, sortedProcesses->wait_time);
+        sortedProcesses = sortedProcesses->next;
+    }
+
+    printf("Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
 }
 
 int countProcesses(struct Process *process_head)
@@ -274,47 +407,6 @@ int countProcesses(struct Process *process_head)
     }
 
     return count;
-}
-struct Process *sortProcesses(struct Process *process_head)
-{
-    struct Process *process_current;
-    struct Process *process_next;
-
-    process_current = process_head;
-
-    while (process_current != NULL)
-    {
-        process_next = process_current->next;
-        while (process_next != NULL)
-        {
-            if (process_current->arrival_time > process_next->arrival_time)
-            {
-                int brust_time, arrival_time, priority;
-
-                brust_time = process_current->brust_time;
-                arrival_time = process_current->arrival_time;
-                priority = process_current->priority;
-
-                process_current->arrival_time = process_next->arrival_time;
-                process_current->brust_time = process_next->brust_time;
-                process_current->priority = process_next->priority;
-
-                process_next->arrival_time = arrival_time;
-                process_next->brust_time = brust_time;
-                process_next->priority = priority;
-            }
-            process_next = process_next->next;
-        }
-        process_current = process_current->next;
-    }
-    process_current = process_head;
-    while (process_current != NULL)
-    {
-        printf("%d:%d:%d\n", process_current->brust_time, process_current->arrival_time, process_current->priority);
-        process_current = process_current->next;
-        getch();
-    }
-    return process_head;
 }
 
 int main(int argc, char const *argv[])
@@ -394,7 +486,7 @@ int main(int argc, char const *argv[])
             printf("Show");
             break;
         case '4':
-            printf("end");
+            End_Program(run, process_head);
             // break; // no break because after this option exit program(option q);
         case 'q':
             exit(0);
