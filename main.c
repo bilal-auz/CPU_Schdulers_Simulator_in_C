@@ -13,10 +13,12 @@ typedef enum // selecting the scheduling method
 
 struct Process
 {
+    int pid;
     int brust_time;
     int arrival_time;
     int priority;
     int wait_time;
+    int remaining_brust_time;
 
     struct Process *next; // pointer to next job.
 };
@@ -88,6 +90,7 @@ struct Process *readProcesses(FILE *InputFile)
 
     head_input = NULL; // the head is NULL
     int col = 0;       // the col index
+    int count = 0;     // counter to assign pid values
 
     process_head = NULL;
     // start reading the Input file and extract data
@@ -138,7 +141,8 @@ struct Process *readProcesses(FILE *InputFile)
         {
             if (process_temp == NULL)
             {
-                process_temp = (struct Process *)malloc(sizeof(struct Process));
+                process_temp = (struct Process *)malloc(sizeof(struct Process)); // new process
+                process_temp->pid = ++count;                                     // assing number to the process
                 process_temp->next = NULL;
             }
 
@@ -182,6 +186,8 @@ struct Process *readProcesses(FILE *InputFile)
                 // process_temp->priority = temp_input->value - '0';
                 process_temp->priority = atoi(one_number);
 
+                process_temp->wait_time = -1; // unutilized value
+
                 // printf("%d", process_temp->brust_time);
                 if (process_head == NULL)
                 {
@@ -212,6 +218,51 @@ struct Process *readProcesses(FILE *InputFile)
     return process_head;
 }
 
+struct Process *sortProcessesByPID(struct Process *process_head)
+{
+    struct Process *process_current;
+    struct Process *process_next;
+
+    process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        process_next = process_current->next;
+        while (process_next != NULL)
+        {
+            if (process_current->pid > process_next->pid)
+            {
+                int pid, brust_time, arrival_time, priority, wait_time, remaining_brust_time;
+
+                pid = process_current->pid;
+                brust_time = process_current->brust_time;
+                arrival_time = process_current->arrival_time;
+                priority = process_current->priority;
+                wait_time = process_current->wait_time;
+                remaining_brust_time = process_current->remaining_brust_time;
+
+                process_current->pid = process_next->pid;
+                process_current->arrival_time = process_next->arrival_time;
+                process_current->brust_time = process_next->brust_time;
+                process_current->priority = process_next->priority;
+                process_current->wait_time = process_next->wait_time;
+                process_current->remaining_brust_time = process_next->remaining_brust_time;
+
+                process_next->pid = pid;
+                process_next->arrival_time = arrival_time;
+                process_next->brust_time = brust_time;
+                process_next->priority = priority;
+                process_next->wait_time = wait_time;
+                process_next->remaining_brust_time = remaining_brust_time;
+            }
+            process_next = process_next->next;
+        }
+        process_current = process_current->next;
+    }
+
+    return process_head;
+}
+
 // binary sorting the processes based on arrival time
 struct Process *sortProcesses(struct Process *process_head)
 {
@@ -227,19 +278,120 @@ struct Process *sortProcesses(struct Process *process_head)
         {
             if (process_current->arrival_time > process_next->arrival_time)
             {
-                int brust_time, arrival_time, priority;
+                int pid, brust_time, arrival_time, priority, wait_time, remaining_brust_time;
 
+                pid = process_current->pid;
                 brust_time = process_current->brust_time;
                 arrival_time = process_current->arrival_time;
                 priority = process_current->priority;
+                wait_time = process_current->wait_time;
+                remaining_brust_time = process_current->remaining_brust_time;
 
+                process_current->pid = process_next->pid;
                 process_current->arrival_time = process_next->arrival_time;
                 process_current->brust_time = process_next->brust_time;
                 process_current->priority = process_next->priority;
+                process_current->wait_time = process_next->wait_time;
+                process_current->remaining_brust_time = process_next->remaining_brust_time;
 
+                process_next->pid = pid;
                 process_next->arrival_time = arrival_time;
                 process_next->brust_time = brust_time;
                 process_next->priority = priority;
+                process_next->wait_time = wait_time;
+                process_next->remaining_brust_time = remaining_brust_time;
+            }
+            process_next = process_next->next;
+        }
+        process_current = process_current->next;
+    }
+
+    return process_head;
+}
+
+struct Process *sort_processes_short_brust(struct Process *process_head)
+{
+    struct Process *process_current;
+    struct Process *process_next;
+
+    process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        process_next = process_current->next;
+        while (process_next != NULL)
+        {
+            if ((process_current->arrival_time > process_next->arrival_time) ||
+                (process_current->arrival_time == process_next->arrival_time && process_current->brust_time > process_next->brust_time))
+            {
+                int pid, brust_time, arrival_time, priority, wait_time, remaining_brust_time;
+
+                pid = process_current->pid;
+                brust_time = process_current->brust_time;
+                arrival_time = process_current->arrival_time;
+                priority = process_current->priority;
+                wait_time = process_current->wait_time;
+                remaining_brust_time = process_current->remaining_brust_time;
+
+                process_current->pid = process_next->pid;
+                process_current->arrival_time = process_next->arrival_time;
+                process_current->brust_time = process_next->brust_time;
+                process_current->priority = process_next->priority;
+                process_current->wait_time = process_next->wait_time;
+                process_current->remaining_brust_time = process_next->remaining_brust_time;
+
+                process_next->pid = pid;
+                process_next->arrival_time = arrival_time;
+                process_next->brust_time = brust_time;
+                process_next->priority = priority;
+                process_next->wait_time = wait_time;
+                process_next->remaining_brust_time = remaining_brust_time;
+            }
+            process_next = process_next->next;
+        }
+        process_current = process_current->next;
+    }
+
+    return process_head;
+}
+
+struct Process *sort_burst_time(struct Process *process_head)
+{
+    struct Process *process_current;
+    struct Process *process_next;
+
+    process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        process_next = process_current->next;
+        while (process_next != NULL)
+        {
+            if ((process_current->brust_time > process_next->brust_time) ||
+                (process_current->brust_time == process_next->brust_time && process_current->arrival_time > process_next->arrival_time))
+            {
+                int pid, brust_time, arrival_time, priority, wait_time, remaining_brust_time;
+
+                pid = process_current->pid;
+                brust_time = process_current->brust_time;
+                arrival_time = process_current->arrival_time;
+                priority = process_current->priority;
+                wait_time = process_current->wait_time;
+                remaining_brust_time = process_current->remaining_brust_time;
+
+                process_current->pid = process_next->pid;
+                process_current->arrival_time = process_next->arrival_time;
+                process_current->brust_time = process_next->brust_time;
+                process_current->priority = process_next->priority;
+                process_current->wait_time = process_next->wait_time;
+                process_current->remaining_brust_time = process_next->remaining_brust_time;
+
+                process_next->pid = pid;
+                process_next->arrival_time = arrival_time;
+                process_next->brust_time = brust_time;
+                process_next->priority = priority;
+                process_next->wait_time = wait_time;
+                process_next->remaining_brust_time = remaining_brust_time;
             }
             process_next = process_next->next;
         }
@@ -390,7 +542,6 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
 
     int time = 0;
     int progress = 0;
-    int queue = 0;
     run->total_brust = calculate_brust_time(process); // get the total brust time for all processes
 
     /**
@@ -423,6 +574,38 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
     }
 }
 
+void Short_Job_First(struct Run *run, struct Process *process_head)
+{
+    struct Process *current_process = process_head;
+    struct Process *queue = current_process;
+    int progress = 0;
+    int total_burst_time = calculate_brust_time(current_process);
+
+    int i = 0;
+    for (i = 0; i < total_burst_time; i++)
+    {
+        if (current_process->wait_time == -1)
+        {
+            current_process->wait_time = (progress - current_process->arrival_time <= 0) ? 0 : (progress - current_process->arrival_time);
+        }
+
+        current_process->brust_time--;
+
+        progress++;
+
+        if (current_process->brust_time == 0)
+        {
+            current_process = sort_burst_time(current_process->next);
+        }
+
+        if (progress == total_burst_time)
+        {
+            current_process = process_head;
+            run->Avg_Wait_Time = calculate_avg_wating_time(current_process);
+        }
+    }
+}
+
 void End_Program(struct Run *run, struct Process *process_head)
 {
     system("cls");
@@ -440,6 +623,9 @@ void End_Program(struct Run *run, struct Process *process_head)
         First_Come_First_Served(run, sortedProcesses);
         break;
     case SJF:
+        sortedProcesses = sort_processes_short_brust(sortedProcesses);
+
+        Short_Job_First(run, sortedProcesses);
         break;
     case PS:
         /* code */
@@ -452,10 +638,11 @@ void End_Program(struct Run *run, struct Process *process_head)
         break;
     }
 
+    sortedProcesses = sortProcessesByPID(sortedProcesses);
     // printing the output after implementing the scheduling
     while (sortedProcesses != NULL)
     {
-        printf("P%d: %d ms\n", ++count, sortedProcesses->wait_time);
+        printf("P%d: %d ms\n", sortedProcesses->pid, sortedProcesses->wait_time);
         sortedProcesses = sortedProcesses->next;
     }
 
