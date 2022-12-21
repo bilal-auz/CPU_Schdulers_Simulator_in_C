@@ -46,6 +46,32 @@ FILE *openFile(const char fileName[])
 
     return file;
 }
+int countProcesses(struct Process *process_head)
+{
+    int count = 0;
+    struct Process *process_current = process_head;
+
+    while (process_current != NULL)
+    {
+        count++;
+        process_current = process_current->next;
+    }
+
+    return count;
+}
+int countInputs(struct InputChar *input_head)
+{
+    int count = 0;
+    struct InputChar *input_current = input_head;
+
+    while (input_current != NULL)
+    {
+        count++;
+        input_current = input_current->next;
+    }
+
+    return count;
+}
 
 struct Process *readProcesses(FILE *InputFile)
 {
@@ -87,6 +113,7 @@ struct Process *readProcesses(FILE *InputFile)
             {
                 head_input = (struct InputChar *)malloc(sizeof(struct InputChar));
                 head_input->value = temp_ch;
+
                 head_input->next = NULL;
                 current_input = head_input;
             }
@@ -94,6 +121,13 @@ struct Process *readProcesses(FILE *InputFile)
             {
                 temp_input = (struct InputChar *)malloc(sizeof(struct InputChar));
                 temp_input->value = temp_ch;
+                // printf("temp_input->value: %c", temp_input->value);
+
+                // temp_input->value = strcat(temp_input->value, temp_ch);
+
+                // printf("temp_input->value: %c", temp_input->value);
+
+                // exit(0);
                 temp_input->next = NULL;
 
                 current_input->next = temp_input;
@@ -108,22 +142,45 @@ struct Process *readProcesses(FILE *InputFile)
                 process_temp->next = NULL;
             }
 
+            // printf("%c--", head_input->value);
+            // printf("%c", head_input->next->value);
+
+            // exit(1);
+            int size = countInputs(head_input);
+
+            char *one_number = (char *)malloc(size * sizeof(char));
+
             temp_input = head_input;
+            int count = 0;
+            // temp_number = strcat("zz", "bb");
+
+            // printf("%s", strcat(one_number, temp_input->value));
+            while (temp_input != NULL)
+            {
+                one_number[count++] = temp_input->value;
+
+                temp_input = temp_input->next;
+            }
+
+            // printf("%d\n", atoi(one_number));
 
             if (col == 0)
             {
-                process_temp->brust_time = temp_input->value - '0';
+                // process_temp->brust_time = temp_input->value - '0';
+                process_temp->brust_time = atoi(one_number);
                 // printf("Brust time: %d\n", process_temp->brust_time);
             }
             else if (col == 1)
             {
                 // printf("Arrival time: %c\n", temp_input->value);
-                process_temp->arrival_time = temp_input->value - '0';
+                // process_temp->arrival_time = temp_input->value - '0';
+                process_temp->arrival_time = atoi(one_number);
             }
             else if (col == 2)
             {
                 // printf("Protiry : %c\n", temp_input->value);
-                process_temp->priority = temp_input->value - '0';
+                // process_temp->priority = temp_input->value - '0';
+                process_temp->priority = atoi(one_number);
 
                 // printf("%d", process_temp->brust_time);
                 if (process_head == NULL)
@@ -142,6 +199,7 @@ struct Process *readProcesses(FILE *InputFile)
             }
             col++;
             head_input = NULL;
+            free(one_number);
 
             if (col > 2)
             {
@@ -312,8 +370,8 @@ float calculate_avg_wating_time(struct Process *process_head)
 {
     struct Process *process = process_head;
 
-    int total_wating_time = 0;
-    int count = 0;
+    float total_wating_time = 0;
+    float count = 0;
 
     while (process != NULL)
     {
@@ -330,8 +388,9 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
 {
     struct Process *process = process_head;
 
+    int time = 0;
     int progress = 0;
-
+    int queue = 0;
     run->total_brust = calculate_brust_time(process); // get the total brust time for all processes
 
     /**
@@ -341,7 +400,15 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
      */
     while (process != NULL)
     {
-        process->wait_time = progress - process->arrival_time;
+        // printf("%d--", progress);
+        if ((progress > 0) && (progress - process->arrival_time) <= 0)
+        {
+            process->wait_time = 0;
+        }
+        else
+        {
+            process->wait_time = progress - process->arrival_time;
+        }
 
         progress += process->brust_time;
 
@@ -393,20 +460,6 @@ void End_Program(struct Run *run, struct Process *process_head)
     }
 
     printf("Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
-}
-
-int countProcesses(struct Process *process_head)
-{
-    int count = 0;
-    struct Process *process_current = process_head;
-
-    while (process_current != NULL)
-    {
-        count++;
-        process_current = process_current->next;
-    }
-
-    return count;
 }
 
 int main(int argc, char const *argv[])
