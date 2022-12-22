@@ -881,14 +881,6 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
     int progress = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
-    queue = current_process;
-    while (queue != NULL)
-    {
-        printf("P%d: %d:%d:%d\n", queue->pid, queue->brust_time, queue->arrival_time, queue->priority);
-        queue = queue->next;
-    }
-    printf("\n---------\n");
-    // exit(0);
     int i = 0;
     for (i = 0; i < total_burst_time; i++)
     {
@@ -904,13 +896,6 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
         if (current_process->remaining_brust_time == 0)
         {
             current_process = sort_priority_time(current_process->next, progress);
-            queue = current_process;
-            while (queue != NULL)
-            {
-                printf("P%d: %d:%d:%d\n", queue->pid, queue->brust_time, queue->arrival_time, queue->priority);
-                queue = queue->next;
-            }
-            printf("\n---------\n");
         }
     }
 
@@ -956,16 +941,84 @@ void Priority_Scheduler_Preemptive(struct Run *run, struct Process *process_head
         {
             current_process = sort_priority_time(current_process, progress);
         }
+    }
 
-        queue = current_process;
+    if (progress == total_burst_time)
+    {
+        run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
+    }
+}
 
-        printf("Progress: %d\n", progress);
-        while (queue != NULL)
+// RR
+void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
+{
+    struct Process *current_process = process_head;
+    struct Process *queue = current_process;
+
+    int progress = 0;
+    int total_burst_time = calculate_brust_time(current_process);
+
+    printf("%d", total_burst_time);
+
+    // convert to circular linkedlist. So we can loop through processes
+    while (1)
+    {
+        if (queue->next == NULL)
         {
-            printf("P%d: %d--%d--%d\n", queue->pid, queue->remaining_brust_time, queue->arrival_time, queue->priority);
-            queue = queue->next;
+            queue->next = process_head;
+            break;
         }
-        printf("\n-------------\n");
+
+        queue = queue->next;
+    }
+
+    current_process = process_head;
+
+    int i = 0;
+
+    int quantum = 0;
+    printf("Enter the quantum value: ");
+    scanf("%d", &quantum);
+
+    while (progress < total_burst_time && current_process != NULL)
+    {
+        current_process->wait_time += (progress - current_process->last_point);
+
+        for (i = 0; i < quantum; i++)
+        {
+            if (current_process->remaining_brust_time <= 0)
+            {
+                break;
+            }
+
+            progress++;
+
+            current_process->last_point = progress;
+
+            current_process->remaining_brust_time--;
+        }
+
+        current_process = current_process->next;
+
+        // if the current(next process) finished execuating (remaining_brust_time == 0), get the next one
+        // only works if progress < total burst time.
+        while (progress < total_burst_time && current_process->remaining_brust_time <= 0)
+        {
+            current_process = current_process->next;
+        }
+    }
+
+    // convert back to singly linkedlist
+    queue = process_head;
+    while (1)
+    {
+        if (queue->next == process_head)
+        {
+            queue->next = NULL;
+            break;
+        }
+
+        queue = queue->next;
     }
 
     if (progress == total_burst_time)
@@ -1018,7 +1071,7 @@ void End_Program(struct Run *run, struct Process *process_head)
 
         break;
     case RRS:
-        /* code */
+        Round_Robin_Scheduler(run, sortedProcesses);
         break;
     default:
         printf("Choose a scheduling method");
@@ -1080,8 +1133,8 @@ int main(int argc, char const *argv[])
     }
 
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
-    run->Scheduling_Method = PS; // default  NONE
-    run->Preemtive_Mode = 0;     // default 0
+    run->Scheduling_Method = RRS; // default  NONE
+    run->Preemtive_Mode = 1;      // default 0
 
     struct Process *p;
 
