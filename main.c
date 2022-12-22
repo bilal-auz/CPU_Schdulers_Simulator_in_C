@@ -526,9 +526,9 @@ struct Process *sort_priority_time(struct Process *process_head, int progress)
         process_next = process_current->next;
         while (process_next != NULL)
         {
-            printf("%d\n", progress);
+            // printf("%d\n", progress);
 
-            if ((process_current->priority > process_next->priority) ||
+            if ((process_current->priority > process_next->priority && process_next->arrival_time <= progress) ||
                 (process_current->arrival_time > progress) ||
                 (process_current->priority == process_next->priority && process_current->arrival_time > process_next->arrival_time))
             {
@@ -873,6 +873,7 @@ void Short_Job_First_Preemptive(struct Run *run, struct Process *process_head)
     }
 }
 
+// PS main schedulers
 void Priority_Scheduler(struct Run *run, struct Process *process_head)
 {
     struct Process *current_process = process_head;
@@ -919,6 +920,59 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
         run->Avg_Wait_Time = calculate_avg_wating_time(current_process);
     }
 }
+void Priority_Scheduler_Preemptive(struct Run *run, struct Process *process_head)
+{
+    struct Process *current_process = process_head;
+    struct Process *queue = current_process;
+    int progress = 0;
+    int total_burst_time = calculate_brust_time(current_process);
+
+    int i = 0;
+
+    // queue = current_process;
+
+    // while (queue != NULL)
+    // {
+    //     printf("P%d: %d--%d--%d\n", queue->pid, queue->brust_time, queue->arrival_time, queue->priority);
+    //     queue = queue->next;
+    // }
+    // printf("\n-------------\n");
+
+    while (progress < total_burst_time && current_process != NULL)
+    {
+        current_process->wait_time += (progress - current_process->last_point);
+
+        current_process->remaining_brust_time--;
+
+        progress++;
+
+        current_process->last_point = progress;
+
+        if (current_process->remaining_brust_time <= 0)
+        {
+            current_process = remove_process(current_process, current_process->pid);
+        }
+        else
+        {
+            current_process = sort_priority_time(current_process, progress);
+        }
+
+        queue = current_process;
+
+        printf("Progress: %d\n", progress);
+        while (queue != NULL)
+        {
+            printf("P%d: %d--%d--%d\n", queue->pid, queue->remaining_brust_time, queue->arrival_time, queue->priority);
+            queue = queue->next;
+        }
+        printf("\n-------------\n");
+    }
+
+    if (progress == total_burst_time)
+    {
+        run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
+    }
+}
 
 void End_Program(struct Run *run, struct Process *process_head)
 {
@@ -959,7 +1013,7 @@ void End_Program(struct Run *run, struct Process *process_head)
         }
         else // preemptive mode: on
         {
-            // Priority_Scheduler_Preemptive(run, sortedProcesses);
+            Priority_Scheduler_Preemptive(run, sortedProcesses);
         }
 
         break;
