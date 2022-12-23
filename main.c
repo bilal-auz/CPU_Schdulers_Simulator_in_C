@@ -38,9 +38,9 @@ struct Run
     int total_brust;     // total brust time for processes
 };
 
-FILE *openFile(const char fileName[])
+FILE *openFile(const char fileName[], const char *mode)
 {
-    FILE *file = fopen(fileName, "r");
+    FILE *file = fopen(fileName, mode);
 
     if (file == NULL)
     {
@@ -1027,12 +1027,14 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
     }
 }
 
-void End_Program(struct Run *run, struct Process *process_head)
+// Option 3: show results
+int Show_Results(struct Run *run, struct Process *process_head)
 {
     system("cls");
 
     struct Process *sortedProcesses = sortProcesses(process_head); // sorting the processes
-    int count = 0;                                                 // counter to add the number of each process
+    struct Process *temp_process;
+    int count = 0; // counter to add the number of each process
 
     // print the headers
     printf("Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
@@ -1079,14 +1081,40 @@ void End_Program(struct Run *run, struct Process *process_head)
     }
 
     sortedProcesses = sortProcessesByPID(sortedProcesses);
+    temp_process = sortedProcesses;
     // printing the output after implementing the scheduling
-    while (sortedProcesses != NULL)
+    while (temp_process != NULL)
     {
-        printf("P%d: %d ms\n", sortedProcesses->pid, sortedProcesses->wait_time);
-        sortedProcesses = sortedProcesses->next;
+        printf("P%d: %d ms\n", temp_process->pid, temp_process->wait_time);
+        temp_process = temp_process->next;
     }
 
     printf("Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
+
+    printf("\n\nPress any key to go back to menu..");
+
+    getch();
+}
+
+// Option 4: Save results to Output File
+int Save_Results_To_File(struct Run *run, FILE *OutputFile, const char *OutputFile_name, struct Process *process_head)
+{
+    if (OutputFile == NULL)
+    {
+        printf("\nProblem writing results to output file: %s\n", OutputFile_name);
+        return 0;
+    }
+
+    fprintf(OutputFile, "Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
+    fprintf(OutputFile, "- Preemptive Mode: %s\n", (run->Preemtive_Mode == 0 ? " Off " : " On "));
+
+    while (process_head != NULL)
+    {
+        fprintf(OutputFile, "P%d: %d ms\n", process_head->pid, process_head->wait_time);
+        process_head = process_head->next;
+    }
+
+    fprintf(OutputFile, "Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
 }
 
 int main(int argc, char const *argv[])
@@ -1096,8 +1124,10 @@ int main(int argc, char const *argv[])
     char *tempChars;
     tempChars = (char *)malloc(10 * sizeof(char));
 
-    FILE *InputFile; //-f input file
-    FILE *OuputFile; //-o output file
+    FILE *InputFile;             //-f input file
+    FILE *OuputFile;             //-o output file
+    const char *InputFile_name;  // store name of input file
+    const char *OutputFile_name; // store name of output file
 
     int choice; // user choice
 
@@ -1115,7 +1145,7 @@ int main(int argc, char const *argv[])
     {
         if (strcmp(argv[i], "-f") == 0) // handel the -f file
         {
-            InputFile = openFile(argv[i + 1]); // open input file
+            InputFile = openFile(argv[i + 1], "r"); // open input file
 
             if (InputFile == NULL) // check if not opened
             {
@@ -1123,18 +1153,27 @@ int main(int argc, char const *argv[])
                 return -1;
             }
 
+            InputFile_name = argv[i + 1];
             process_head = readProcesses(InputFile);
         }
 
         if (strcmp(argv[i], "-o") == 0) // handle the -o file
         {
-            // printf("output: %s", argv[i + 1]);
+            OuputFile = openFile(argv[i + 1], "w");
+
+            if (OuputFile == NULL)
+            {
+                printf("%s: Can't open the input file", argv[i + 1]);
+                return -1;
+            }
+
+            OutputFile_name = argv[i + 1];
         }
     }
 
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
-    run->Scheduling_Method = RRS; // default  NONE
-    run->Preemtive_Mode = 1;      // default 0
+    run->Scheduling_Method = NONE; // default  NONE
+    run->Preemtive_Mode = 0;       // default 0
 
     struct Process *p;
 
@@ -1163,11 +1202,13 @@ int main(int argc, char const *argv[])
             run->Preemtive_Mode = Set_Preemtive_Mode(run->Scheduling_Method);
             break;
         case '3':
-            printf("Show");
+            printf("\n---%s---\n", get_scheduling_method_name(run->Scheduling_Method));
+            Show_Results(run, process_head);
             break;
         case '4':
-            End_Program(run, process_head);
-            // break; // no break because after this option exit program(option q);
+            Show_Results(run, process_head);
+            Save_Results_To_File(run, OuputFile, OutputFile_name, process_head);
+            // no break because after this option exit program(option q);
         case 'q':
             exit(0);
             break;
@@ -1196,5 +1237,6 @@ int main(int argc, char const *argv[])
     // free(head_input);
     // free(temp_input);
     fclose(InputFile);
+    fclose(OuputFile);
     return 0;
 }
