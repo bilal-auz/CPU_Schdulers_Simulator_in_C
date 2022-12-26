@@ -1027,10 +1027,14 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
     }
 }
 
-// Option 3: show results
+// Option 3: show results. Return 0 if problem, and 1 if successfully finished
 int Show_Results(struct Run *run, struct Process *process_head)
 {
     system("cls");
+    if (run->Scheduling_Method == NONE) // check if scheduling method is chosen
+    {
+        return 0;
+    }
 
     struct Process *sortedProcesses = sortProcesses(process_head); // sorting the processes
     struct Process *temp_process;
@@ -1076,7 +1080,8 @@ int Show_Results(struct Run *run, struct Process *process_head)
         Round_Robin_Scheduler(run, sortedProcesses);
         break;
     default:
-        printf("Choose a scheduling method");
+        printf("\nChoose a scheduling method!");
+        return 0; // means problem
         break;
     }
 
@@ -1091,9 +1096,7 @@ int Show_Results(struct Run *run, struct Process *process_head)
 
     printf("Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
 
-    printf("\n\nPress any key to go back to menu..");
-
-    getch();
+    return 1; // means successfully finished
 }
 
 // Option 4: Save results to Output File
@@ -1202,11 +1205,23 @@ int main(int argc, char const *argv[])
             run->Preemtive_Mode = Set_Preemtive_Mode(run->Scheduling_Method);
             break;
         case '3':
-            printf("\n---%s---\n", get_scheduling_method_name(run->Scheduling_Method));
-            Show_Results(run, process_head);
+            if (Show_Results(run, process_head) == 0)
+            {
+                printf("Choose a scheduling method!");
+            }
+            printf("\n\nPress any key to go back to menu..");
+            getch();
             break;
         case '4':
-            Show_Results(run, process_head);
+            // if error (return 0) break, otherwise write the results to file
+            if (Show_Results(run, process_head) == 0)
+            {
+                printf("Choose a scheduling method!");
+                printf("\n\nPress any key to go back to menu..");
+                getch();
+                break;
+            }
+
             Save_Results_To_File(run, OuputFile, OutputFile_name, process_head);
             // no break because after this option exit program(option q);
         case 'q':
