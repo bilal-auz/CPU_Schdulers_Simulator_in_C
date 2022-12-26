@@ -38,6 +38,12 @@ struct Run
     int total_brust;     // total brust time for processes
 };
 
+struct File
+{
+    FILE *file;
+    char const *file_name;
+};
+
 FILE *openFile(const char fileName[], const char *mode)
 {
     FILE *file = fopen(fileName, mode);
@@ -222,7 +228,7 @@ struct Process *readProcesses(FILE *InputFile)
     return process_head;
 }
 
-struct Process *init_the_inputs(int argc, char const *argv[], FILE *InputFile, FILE *OuputFile, char const *OutputFile_name)
+struct Process *init_the_inputs(int argc, char const *argv[], struct File *InputFile, struct File *OuputFile)
 {
     int i;
     struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
@@ -231,32 +237,24 @@ struct Process *init_the_inputs(int argc, char const *argv[], FILE *InputFile, F
     {
         if (strcmp(argv[i], "-f") == 0) // handel the -f file
         {
-            InputFile = openFile(argv[i + 1], "r"); // open input file
+            InputFile->file_name = argv[i + 1];
+            InputFile->file = openFile(argv[i + 1], "r"); // open input file
 
-            if (InputFile == NULL) // check if not opened
+            if (InputFile->file == NULL) // check if not opened
             {
                 printf("%s: Can't open the input file", argv[i + 1]);
                 exit(-1);
             }
 
-            // InputFile_name = argv[i + 1];
-            process_head = readProcesses(InputFile);
+            process_head = readProcesses(InputFile->file);
         }
 
         if (strcmp(argv[i], "-o") == 0) // handle the -o file
         {
-            OuputFile = openFile(argv[i + 1], "w");
-
-            if (OuputFile == NULL)
-            {
-                printf("%s: Can't open the input file", argv[i + 1]);
-                exit(-1);
-            }
-
-            OutputFile_name = argv[i + 1];
+            OuputFile->file_name = argv[i + 1];
         }
     }
-
+    fclose(InputFile->file);
     return process_head;
 }
 
@@ -1140,26 +1138,30 @@ int Show_Results(struct Run *run, struct Process *process_head)
 }
 
 // Option 4: Save results to Output File
-int Save_Results_To_File(struct Run *run, FILE *OutputFile, const char *OutputFile_name, struct Process *process_head)
+int Save_Results_To_File(struct Run *run, struct File *OutputFile, struct Process *process_head)
 {
-    if (OutputFile == NULL)
+    OutputFile->file = openFile(OutputFile->file_name, "w");
+
+    if (OutputFile->file == NULL)
     {
-        printf("\nProblem writing results to output file: %s\n", OutputFile_name);
+        printf("\nProblem writing results to output file: %s\n", OutputFile->file_name);
         return 0;
     }
 
-    printf("\nWriting Results to file: %s...", OutputFile_name);
+    printf("\nWriting Results to file: %s...", OutputFile->file_name);
 
-    fprintf(OutputFile, "Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
-    fprintf(OutputFile, "- Preemptive Mode: %s\n", (run->Preemtive_Mode == 0 ? " Off " : " On "));
+    fprintf(OutputFile->file, "Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
+    fprintf(OutputFile->file, "- Preemptive Mode: %s\n", (run->Preemtive_Mode == 0 ? " Off " : " On "));
 
     while (process_head != NULL)
     {
-        fprintf(OutputFile, "P%d: %d ms\n", process_head->pid, process_head->wait_time);
+        fprintf(OutputFile->file, "P%d: %d ms\n", process_head->pid, process_head->wait_time);
         process_head = process_head->next;
     }
 
-    fprintf(OutputFile, "Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
+    fprintf(OutputFile->file, "Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
+
+    fclose(OutputFile->file);
 }
 
 int main(int argc, char const *argv[])
@@ -1169,10 +1171,10 @@ int main(int argc, char const *argv[])
     char *tempChars;
     tempChars = (char *)malloc(10 * sizeof(char));
 
-    FILE *InputFile;             //-f input file
-    FILE *OuputFile;             //-o output file
-    const char *InputFile_name;  // store name of input file
-    const char *OutputFile_name; // store name of output file
+    struct File *InputFile = (struct File *)malloc(sizeof(struct File)); //-f input file
+    struct File *OuputFile = (struct File *)malloc(sizeof(struct File)); //-o output file
+    // const char *InputFile_name;                                          // store name of input file
+    // const char *OutputFile_name;                                         // store name of output file
 
     char choice; // user choice
 
@@ -1187,7 +1189,7 @@ int main(int argc, char const *argv[])
 
     // read the passed files, and create linkedList of processes in input.txt
     // printf("\n%s\n", OutputFile_name);
-    process_head = init_the_inputs(argc, argv, InputFile, OuputFile, OutputFile_name);
+    process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
 
     // for (i = 0; i < argc; i++) // loop through the passed args -f and -o
     // {
@@ -1274,7 +1276,7 @@ int main(int argc, char const *argv[])
                 break;
             }
 
-            Save_Results_To_File(run, OuputFile, OutputFile_name, process_head);
+            Save_Results_To_File(run, OuputFile, process_head);
             // no break because after this option exit program(option q);
         case 'q':
             exit(0);
@@ -1294,7 +1296,7 @@ int main(int argc, char const *argv[])
         // }
         // getch();
         // free the allocated memory
-        process_head = init_the_inputs(argc, argv, InputFile, OuputFile, OutputFile_name);
+        process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
         // printf("\n\n====================\n\n");
 
         // process_current = process_head;
@@ -1322,7 +1324,7 @@ int main(int argc, char const *argv[])
     // free(process_current);
     // free(head_input);
     // free(temp_input);
-    fclose(InputFile);
-    fclose(OuputFile);
+    fclose(InputFile->file);
+    fclose(OuputFile->file);
     return 0;
 }
