@@ -144,6 +144,7 @@ struct Process *readProcesses(FILE *InputFile)
             {
                 process_temp = (struct Process *)malloc(sizeof(struct Process)); // new process
                 process_temp->pid = ++count;                                     // assing number to the process
+                process_temp->wait_time = 0;
                 process_temp->next = NULL;
             }
 
@@ -215,6 +216,44 @@ struct Process *readProcesses(FILE *InputFile)
                 col = 0;
                 // printf("\n");
             }
+        }
+    }
+
+    return process_head;
+}
+
+struct Process *init_the_inputs(int argc, char const *argv[], FILE *InputFile, FILE *OuputFile, char const *OutputFile_name)
+{
+    int i;
+    struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
+
+    for (i = 0; i < argc; i++) // loop through the passed args -f and -o
+    {
+        if (strcmp(argv[i], "-f") == 0) // handel the -f file
+        {
+            InputFile = openFile(argv[i + 1], "r"); // open input file
+
+            if (InputFile == NULL) // check if not opened
+            {
+                printf("%s: Can't open the input file", argv[i + 1]);
+                exit(-1);
+            }
+
+            // InputFile_name = argv[i + 1];
+            process_head = readProcesses(InputFile);
+        }
+
+        if (strcmp(argv[i], "-o") == 0) // handle the -o file
+        {
+            OuputFile = openFile(argv[i + 1], "w");
+
+            if (OuputFile == NULL)
+            {
+                printf("%s: Can't open the input file", argv[i + 1]);
+                exit(-1);
+            }
+
+            OutputFile_name = argv[i + 1];
         }
     }
 
@@ -869,7 +908,8 @@ void Short_Job_First_Preemptive(struct Run *run, struct Process *process_head)
 
     if (progress == total_burst_time)
     {
-        run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
+        current_process = process_head;
+        run->Avg_Wait_Time = calculate_avg_wating_time(current_process);
     }
 }
 
@@ -1108,6 +1148,8 @@ int Save_Results_To_File(struct Run *run, FILE *OutputFile, const char *OutputFi
         return 0;
     }
 
+    printf("\nWriting Results to file: %s...", OutputFile_name);
+
     fprintf(OutputFile, "Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
     fprintf(OutputFile, "- Preemptive Mode: %s\n", (run->Preemtive_Mode == 0 ? " Off " : " On "));
 
@@ -1132,7 +1174,7 @@ int main(int argc, char const *argv[])
     const char *InputFile_name;  // store name of input file
     const char *OutputFile_name; // store name of output file
 
-    int choice; // user choice
+    char choice; // user choice
 
     struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
     struct Process *process_current;                                                 // stores current process
@@ -1144,35 +1186,45 @@ int main(int argc, char const *argv[])
     }
 
     // read the passed files, and create linkedList of processes in input.txt
-    for (i = 0; i < argc; i++) // loop through the passed args -f and -o
-    {
-        if (strcmp(argv[i], "-f") == 0) // handel the -f file
-        {
-            InputFile = openFile(argv[i + 1], "r"); // open input file
+    // printf("\n%s\n", OutputFile_name);
+    process_head = init_the_inputs(argc, argv, InputFile, OuputFile, OutputFile_name);
 
-            if (InputFile == NULL) // check if not opened
-            {
-                printf("%s: Can't open the input file", argv[i + 1]);
-                return -1;
-            }
+    // for (i = 0; i < argc; i++) // loop through the passed args -f and -o
+    // {
+    //     if (strcmp(argv[i], "-f") == 0) // handel the -f file
+    //     {
+    //         InputFile = openFile(argv[i + 1], "r"); // open input file
 
-            InputFile_name = argv[i + 1];
-            process_head = readProcesses(InputFile);
-        }
+    //         if (InputFile == NULL) // check if not opened
+    //         {
+    //             printf("%s: Can't open the input file", argv[i + 1]);
+    //             return -1;
+    //         }
 
-        if (strcmp(argv[i], "-o") == 0) // handle the -o file
-        {
-            OuputFile = openFile(argv[i + 1], "w");
+    //         InputFile_name = argv[i + 1];
+    //         process_head = readProcesses(InputFile);
+    //     }
 
-            if (OuputFile == NULL)
-            {
-                printf("%s: Can't open the input file", argv[i + 1]);
-                return -1;
-            }
+    //     if (strcmp(argv[i], "-o") == 0) // handle the -o file
+    //     {
+    //         OuputFile = openFile(argv[i + 1], "w");
 
-            OutputFile_name = argv[i + 1];
-        }
-    }
+    //         if (OuputFile == NULL)
+    //         {
+    //             printf("%s: Can't open the input file", argv[i + 1]);
+    //             return -1;
+    //         }
+
+    //         OutputFile_name = argv[i + 1];
+    //     }
+    // }
+
+    // process_current = process_head;
+    // while (process_current != NULL)
+    // {
+    //     printf("%d) %d:%d:%d -> rbt:%d -> wait:%d\n", process_current->pid, process_current->brust_time, process_current->arrival_time, process_current->priority, process_current->remaining_brust_time, process_current->wait_time);
+    //     process_current = process_current->next;
+    // }
 
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
     run->Scheduling_Method = NONE; // default  NONE
@@ -1231,10 +1283,29 @@ int main(int argc, char const *argv[])
             printf("Wrong Option");
             break;
         }
+
+        // printf("\n\n====================\n\n");
+
+        // process_current = process_head;
+        // while (process_current != NULL)
+        // {
+        //     printf("%d) %d:%d:%d -> rbt:%d -> wait:%d\n", process_current->pid, process_current->brust_time, process_current->arrival_time, process_current->priority, process_current->remaining_brust_time, process_current->wait_time);
+        //     process_current = process_current->next;
+        // }
+        // getch();
+        // free the allocated memory
+        process_head = init_the_inputs(argc, argv, InputFile, OuputFile, OutputFile_name);
+        // printf("\n\n====================\n\n");
+
+        // process_current = process_head;
+        // while (process_current != NULL)
+        // {
+        //     printf("%d) %d:%d:%d -> rbt:%d -> wait:%d\n", process_current->pid, process_current->brust_time, process_current->arrival_time, process_current->priority, process_current->remaining_brust_time, process_current->wait_time);
+        //     process_current = process_current->next;
+        // }
+        free(tempChars);
     }
 
-    // free the allocated memory
-    free(tempChars);
     // free(head_input);
 
     // free(current_input);
