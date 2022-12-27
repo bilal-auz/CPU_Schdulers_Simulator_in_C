@@ -59,7 +59,7 @@ struct Process *sortProcesses(struct Process *process_head);
 
 struct Process *sort_processes_short_brust(struct Process *process_head);
 
-struct Process *sort_burst_time(struct Process *process_head);
+struct Process *sort_burst_time(struct Process *process_head, int progress);
 
 struct Process *sort_burst_time_Preemptive(struct Process *process_head, int progress);
 
@@ -287,7 +287,7 @@ struct Process *readProcesses(FILE *InputFile)
 
             temp_input = head_input;
 
-            count = 0;
+            int count = 0;
             while (temp_input != NULL)
             {
                 one_number[count++] = temp_input->value;
@@ -511,7 +511,7 @@ struct Process *sort_processes_short_brust(struct Process *process_head)
     return process_head;
 }
 
-struct Process *sort_burst_time(struct Process *process_head)
+struct Process *sort_burst_time(struct Process *process_head, int progress)
 {
     struct Process *process_current;
     struct Process *process_next;
@@ -523,7 +523,9 @@ struct Process *sort_burst_time(struct Process *process_head)
         process_next = process_current->next;
         while (process_next != NULL)
         {
-            if ((process_current->brust_time > process_next->brust_time) ||
+            if ((process_current->brust_time > process_next->brust_time &&
+                 process_current->arrival_time < process_next->arrival_time &&
+                 process_next->arrival_time <= progress) ||
                 (process_current->brust_time == process_next->brust_time && process_current->arrival_time > process_next->arrival_time))
             {
                 int pid, brust_time, arrival_time, priority, wait_time, remaining_brust_time, last_point;
@@ -931,7 +933,7 @@ void Short_Job_First(struct Run *run, struct Process *process_head)
 
         if (current_process->remaining_brust_time == 0)
         {
-            current_process = sort_burst_time(current_process->next);
+            current_process = sort_burst_time(current_process->next, progress);
         }
 
         if (progress == total_burst_time)
@@ -961,10 +963,10 @@ void Short_Job_First_Preemptive(struct Run *run, struct Process *process_head)
         {
             current_process = remove_process(current_process, current_process->pid);
         }
-        else
-        {
-            current_process = sort_burst_time_Preemptive(current_process, progress);
-        }
+        // else
+        // {
+        current_process = sort_burst_time_Preemptive(current_process, progress);
+        // }
     }
 
     if (progress == total_burst_time)
@@ -1088,7 +1090,7 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
 
         // if the current(next process) finished execuating (remaining_brust_time == 0), get the next one
         // only works if progress < total burst time.
-        while (progress < total_burst_time && current_process->remaining_brust_time <= 0)
+        while (progress < total_burst_time && current_process->remaining_brust_time <= 0 || current_process->arrival_time > progress)
         {
             current_process = current_process->next;
         }
