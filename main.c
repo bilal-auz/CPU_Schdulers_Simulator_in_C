@@ -71,12 +71,16 @@ struct Process *remove_process(struct Process *process_head, int pid);
 
 const char *get_scheduling_method_name(ScheduleMethod method);
 
+int has_next(struct Process *process_head, int progress);
+
 ScheduleMethod Set_Scheduling_Method();
 
 int Set_Preemtive_Mode(ScheduleMethod currentMethod);
 
 // caculate the brust time of all processes
 int calculate_brust_time(struct Process *process_head);
+
+int calculate_current_brust_time(struct Process *process_head);
 
 // caculate the avg wating time for all the processes(called after going through the scheduler)
 float calculate_avg_wating_time(struct Process *process_head);
@@ -112,8 +116,9 @@ int main(int argc, char const *argv[])
     struct File *InputFile = (struct File *)malloc(sizeof(struct File)); //-f input file
     struct File *OuputFile = (struct File *)malloc(sizeof(struct File)); //-o output file
 
-    struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
-    struct Process *process_current;                                                 // stores current process
+    struct Process *process_head; // store head of processes
+    // struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
+    struct Process *process_current; // stores current process
 
     if (argc <= 1) // check if any command arguments passed
     {
@@ -124,9 +129,24 @@ int main(int argc, char const *argv[])
     // read the passed files, and create linkedList of processes in input.txt
     process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
 
+    // while (process_head != NULL)
+    // {
+    //     printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", process_head->pid, process_head->brust_time, process_head->arrival_time, process_head->remaining_brust_time, process_head->wait_time);
+
+    //     process_head = process_head->next;
+
+    //     if (process_head == NULL)
+    //     {
+    //         getchar();
+    //         process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
+    //     }
+    // }
+
+    // exit(1);
+
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
-    run->Scheduling_Method = NONE; // default  NONE
-    run->Preemtive_Mode = 0;       // default 0
+    run->Scheduling_Method = RRS; // default  NONE
+    run->Preemtive_Mode = 1;      // default 0
 
     // struct Process *p;
 
@@ -159,6 +179,7 @@ int main(int argc, char const *argv[])
             {
                 printf("Choose a scheduling method!");
             }
+
             printf("\n\nPress any key to go back to menu..");
             getch();
             break;
@@ -184,8 +205,9 @@ int main(int argc, char const *argv[])
 
         process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
 
-        free(tempChars);
+        // free(tempChars);
     }
+
     // free the allocated memory
     free(process_head);
 
@@ -324,7 +346,7 @@ struct Process *readProcesses(FILE *InputFile)
             }
             col++;
             head_input = NULL;
-            free(one_number);
+            // free(one_number);
 
             if (col > 2)
             {
@@ -332,6 +354,9 @@ struct Process *readProcesses(FILE *InputFile)
             }
         }
     }
+
+    free(head_input);
+    free(current_input);
 
     return process_head;
 }
@@ -362,6 +387,7 @@ struct Process *init_the_inputs(int argc, char const *argv[], struct File *Input
             OuputFile->file_name = argv[i + 1];
         }
     }
+
     fclose(InputFile->file);
     return process_head;
 }
@@ -855,6 +881,19 @@ int calculate_brust_time(struct Process *process_head)
     return total_brust_time;
 }
 
+int calculate_current_brust_time(struct Process *process_head)
+{
+    struct Process *process = process_head;
+    int total_brust_time = 0;
+    while (process != NULL)
+    {
+        total_brust_time += process->brust_time;
+        process = process->next;
+    }
+
+    return total_brust_time;
+}
+
 // caculate the avg wating time for all the processes(called after going through the scheduler)
 float calculate_avg_wating_time(struct Process *process_head)
 {
@@ -876,40 +915,92 @@ float calculate_avg_wating_time(struct Process *process_head)
 // FCFS main scheduler function
 void First_Come_First_Served(struct Run *run, struct Process *process_head)
 {
+    struct Process *current_process = process_head;
     struct Process *process = process_head;
 
     int time = 0;
     int progress = 0;
-    run->total_brust = calculate_brust_time(process); // get the total brust time for all processes
+    int ideal_time = 0;
+    // int total_burst_time = calculate_brust_time(process);
+    int total_burst_time = calculate_brust_time(current_process);
+
+    // run->total_brust = calculate_brust_time(process); // get the total brust time for all processes
 
     /**
      * FCFS scheduler algorithm works as follow
      * it uses the progress variable to track the brust progress.
      * so the process wating time will always be: the current progress - the process arrival time
      */
+    // int i;
+
     while (process != NULL)
     {
-        // printf("%d--", progress);
-        if ((progress > 0) && (progress - process->arrival_time) <= 0)
+        printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", process->pid, process->brust_time, process->arrival_time, process->remaining_brust_time, process->wait_time, progress, (progress - ideal_time));
+        process = process->next;
+    }
+    // exit(1);
+
+    while ((progress - ideal_time) < total_burst_time && current_process != NULL)
+    {
+        if ((progress > 0) && (progress - current_process->arrival_time) <= 0)
         {
-            process->wait_time = 0;
+            current_process->wait_time = 0;
         }
         else
         {
-            process->wait_time = progress - process->arrival_time;
+            current_process->wait_time = progress - current_process->arrival_time;
         }
 
-        progress += process->brust_time;
+        while (current_process->remaining_brust_time > 0)
+        {
+            current_process->remaining_brust_time--;
+            progress++;
+        }
 
-        process = process->next;
+        printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
+
+        current_process = current_process->next;
+
+        if (current_process == NULL)
+            break;
+
+        while (current_process->arrival_time > progress)
+        {
+            ideal_time++;
+            progress++;
+        }
     }
 
-    if (progress == run->total_brust) // if no errors
-    {
-        process = process_head;
+    // exit(1);
+    // while (process != NULL)
+    // {
+    //     // printf("%d--", progress);
+    //     if ((progress > 0) && (progress - process->arrival_time) <= 0)
+    //     {
+    //         process->wait_time = 0;
+    //     }
+    //     else
+    //     {
+    //         process->wait_time = progress - process->arrival_time;
+    //     }
 
-        run->Avg_Wait_Time = calculate_avg_wating_time(process);
-    }
+    //     progress += process->brust_time;
+
+    //     process = process->next;
+
+    //     while (process != NULL && process->arrival_time > progress)
+    //     {
+    //         ideal_time++;
+    //         progress++;
+    //     }
+    // }
+
+    // if ((progress - ideal_time) == total_burst_time) // if no errors
+    // {
+    // current_process = process_head;
+
+    run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
+    // }
 }
 
 // SJF main schedulers
@@ -1044,9 +1135,17 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
 {
     struct Process *current_process = process_head;
     struct Process *queue = current_process;
+    struct Process *temp = current_process;
 
     int progress = 0;
     int total_burst_time = calculate_brust_time(current_process);
+
+    while (temp != NULL)
+    {
+        printf("P%d -- %d -- %d\n", temp->pid, temp->brust_time, temp->arrival_time, temp->remaining_brust_time);
+        temp = temp->next;
+    }
+    printf("\n\n\n\n");
 
     // convert to circular linkedlist. So we can loop through processes
     while (1)
@@ -1063,12 +1162,13 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
     current_process = process_head;
 
     int i = 0;
+    int ideal_time = 0;
 
     int quantum = 0;
     printf("Enter the quantum value: ");
-    scanf("%d", &quantum);
+    scanf(" %d", &quantum);
 
-    while (progress < total_burst_time && current_process != NULL)
+    while ((progress - ideal_time) < total_burst_time && current_process != NULL)
     {
         current_process->wait_time += (progress - current_process->last_point);
 
@@ -1086,14 +1186,48 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
             current_process->remaining_brust_time--;
         }
 
+        printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
+
+        // temp = process_head;
+        // do
+        // {
+        //     printf("P%d -- %d -- %d\n", temp->pid, temp->brust_time, temp->arrival_time, temp->remaining_brust_time);
+        //     temp = temp->next;
+        // } while (temp != process_head);
+
+        // printf("P%d -- %d -- %d\n", current_process->pid, current_process->remaining_brust_time, progress);
         current_process = current_process->next;
 
+        if ((progress - ideal_time) >= total_burst_time)
+            break;
+        // printf("P%d -- %d -- %d\n", current_process->pid, current_process->remaining_brust_time, progress);
         // if the current(next process) finished execuating (remaining_brust_time == 0), get the next one
         // only works if progress < total burst time.
-        while (progress < total_burst_time && current_process->remaining_brust_time <= 0 || current_process->arrival_time > progress)
+        while ((progress - ideal_time) < total_burst_time && current_process->remaining_brust_time <= 0 || current_process->arrival_time > progress)
         {
+            printf("*P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
+
+            // getch();
+
             current_process = current_process->next;
+
+            if (current_process == process_head)
+            {
+
+                if (has_next(process_head, progress) == 0)
+                {
+                    progress++;
+                    ideal_time++;
+                }
+
+                current_process = process_head;
+                // break;
+            }
         }
+
+        printf("-P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
+
+        // getch();
     }
 
     // convert back to singly linkedlist
@@ -1108,8 +1242,11 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
 
         queue = queue->next;
     }
+    // exit(1);
+    // printf("DONE");
 
-    if (progress == total_burst_time)
+    printf("\n%d\n", total_burst_time);
+    if ((progress - ideal_time) == total_burst_time)
     {
         run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
     }
@@ -1212,4 +1349,21 @@ int Save_Results_To_File(struct Run *run, struct File *OutputFile, struct Proces
     fprintf(OutputFile->file, "Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
 
     fclose(OutputFile->file);
+}
+
+int has_next(struct Process *process_head, int progress)
+{
+    struct Process *temp = process_head;
+
+    do
+    {
+        if (temp->arrival_time <= progress && temp->remaining_brust_time != 0)
+        {
+            return 1;
+        }
+
+        temp = temp->next;
+    } while (temp != process_head);
+
+    return 0;
 }
