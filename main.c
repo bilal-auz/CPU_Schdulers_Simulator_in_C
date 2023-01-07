@@ -107,8 +107,6 @@ int Save_Results_To_File(struct Run *run, struct File *OutputFile, struct Proces
 
 int main(int argc, char const *argv[])
 {
-    // int i; // for iterations;
-    // int count;
     char choice; // user choice
     char *tempChars;
     tempChars = (char *)malloc(10 * sizeof(char));
@@ -116,8 +114,7 @@ int main(int argc, char const *argv[])
     struct File *InputFile = (struct File *)malloc(sizeof(struct File)); //-f input file
     struct File *OuputFile = (struct File *)malloc(sizeof(struct File)); //-o output file
 
-    struct Process *process_head; // store head of processes
-    // struct Process *process_head = (struct Process *)malloc(sizeof(struct Process)); // store head of processes
+    struct Process *process_head;    // store head of processes
     struct Process *process_current; // stores current process
 
     if (argc <= 1) // check if any command arguments passed
@@ -129,26 +126,9 @@ int main(int argc, char const *argv[])
     // read the passed files, and create linkedList of processes in input.txt
     process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
 
-    // while (process_head != NULL)
-    // {
-    //     printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", process_head->pid, process_head->brust_time, process_head->arrival_time, process_head->remaining_brust_time, process_head->wait_time);
-
-    //     process_head = process_head->next;
-
-    //     if (process_head == NULL)
-    //     {
-    //         getchar();
-    //         process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
-    //     }
-    // }
-
-    // exit(1);
-
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
     run->Scheduling_Method = PS; // default  NONE
     run->Preemtive_Mode = 1;     // default 0
-
-    // struct Process *p;
 
     while (1)
     {
@@ -204,8 +184,6 @@ int main(int argc, char const *argv[])
         }
 
         process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
-
-        // free(tempChars);
     }
 
     // free the allocated memory
@@ -346,7 +324,6 @@ struct Process *readProcesses(FILE *InputFile)
             }
             col++;
             head_input = NULL;
-            // free(one_number);
 
             if (col > 2)
             {
@@ -921,24 +898,13 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
     int time = 0;
     int progress = 0;
     int ideal_time = 0;
-    // int total_burst_time = calculate_brust_time(process);
-    int total_burst_time = calculate_brust_time(current_process);
-
-    // run->total_brust = calculate_brust_time(process); // get the total brust time for all processes
+    int total_burst_time = calculate_brust_time(current_process); // get the total brust time for all processes
 
     /**
      * FCFS scheduler algorithm works as follow
      * it uses the progress variable to track the brust progress.
      * so the process wating time will always be: the current progress - the process arrival time
      */
-    // int i;
-
-    while (process != NULL)
-    {
-        printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", process->pid, process->brust_time, process->arrival_time, process->remaining_brust_time, process->wait_time, progress, (progress - ideal_time));
-        process = process->next;
-    }
-    // exit(1);
 
     while ((progress - ideal_time) < total_burst_time && current_process != NULL)
     {
@@ -957,8 +923,6 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
             progress++;
         }
 
-        printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
-
         current_process = current_process->next;
 
         if (current_process == NULL)
@@ -971,36 +935,12 @@ void First_Come_First_Served(struct Run *run, struct Process *process_head)
         }
     }
 
-    // exit(1);
-    // while (process != NULL)
-    // {
-    //     // printf("%d--", progress);
-    //     if ((progress > 0) && (progress - process->arrival_time) <= 0)
-    //     {
-    //         process->wait_time = 0;
-    //     }
-    //     else
-    //     {
-    //         process->wait_time = progress - process->arrival_time;
-    //     }
+    if ((progress - ideal_time) == total_burst_time) // if no errors
+    {
+        current_process = process_head;
 
-    //     progress += process->brust_time;
-
-    //     process = process->next;
-
-    //     while (process != NULL && process->arrival_time > progress)
-    //     {
-    //         ideal_time++;
-    //         progress++;
-    //     }
-    // }
-
-    // if ((progress - ideal_time) == total_burst_time) // if no errors
-    // {
-    // current_process = process_head;
-
-    run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
-    // }
+        run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
+    }
 }
 
 // SJF main schedulers
@@ -1011,12 +951,8 @@ void Short_Job_First(struct Run *run, struct Process *process_head)
     int idle_time = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
-    int i = 0;
-    // for (i = 0; i < total_burst_time; i++)
     while ((progress - idle_time) < total_burst_time && current_process != NULL)
     {
-        printf("P%d: idle: %d, prog:%d\n", current_process->pid, idle_time, progress);
-
         if (current_process->brust_time == current_process->remaining_brust_time)
         {
             current_process->wait_time = (progress - current_process->arrival_time <= 0) ? 0 : (progress - current_process->arrival_time);
@@ -1055,9 +991,7 @@ void Short_Job_First_Preemptive(struct Run *run, struct Process *process_head)
     int total_burst_time = calculate_brust_time(current_process);
 
     while ((progress - idle_time) < total_burst_time && current_process != NULL)
-    // while (progress < total_burst_time && current_process != NULL)
     {
-        printf("P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
 
         current_process->wait_time += (progress - current_process->last_point);
 
@@ -1071,8 +1005,6 @@ void Short_Job_First_Preemptive(struct Run *run, struct Process *process_head)
         {
             current_process = remove_process(current_process, current_process->pid);
         }
-        // else
-        // {
 
         if (current_process != NULL)
         {
@@ -1080,18 +1012,12 @@ void Short_Job_First_Preemptive(struct Run *run, struct Process *process_head)
 
             while (current_process->arrival_time > progress)
             {
-                printf("inside:\n-P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
                 idle_time++;
                 progress++;
             }
-
-            printf("-P%d: idle: %d, prog:%d\n", current_process->pid, idle_time, progress);
         }
-
-        // printf("-P%d: idle: %d, prog:%d\n", current_process->pid, idle_time, progress);
     }
 
-    // if (progress == total_burst_time)
     if ((progress - idle_time) == total_burst_time)
     {
         current_process = process_head;
@@ -1107,12 +1033,8 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
     int idle_time = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
-    int i = 0;
-    // for (i = 0; i < total_burst_time; i++)
     while ((progress - idle_time) < total_burst_time && current_process != NULL)
     {
-        printf("P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
-
         if (current_process->brust_time == current_process->remaining_brust_time)
         {
             current_process->wait_time = (progress - current_process->arrival_time <= 0) ? 0 : (progress - current_process->arrival_time);
@@ -1126,9 +1048,6 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
         {
             if (current_process->next != NULL)
             {
-                printf("*->P%d: idle: %d, prog:%d, tot:%d\n", current_process->next->pid, idle_time, progress, total_burst_time);
-
-                // current_process = sort_arrival_and_priority(current_process->next);
                 current_process = sortProcesses(current_process->next);
 
                 while (current_process->arrival_time > progress)
@@ -1137,12 +1056,7 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
                     progress++;
                 }
 
-                printf("->P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
-
                 current_process = sort_priority_time(current_process, progress);
-                printf("-P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
-
-                // current_process = sort_priority_time(current_process->next, progress);
             }
 
             while (current_process->arrival_time > progress)
@@ -1150,12 +1064,9 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
                 idle_time++;
                 progress++;
             }
-
-            // current_process = sort_priority_time(current_process->next, progress);
         }
     }
 
-    // if (progress == total_burst_time)
     if ((progress - idle_time) == total_burst_time)
     {
         current_process = process_head;
@@ -1169,7 +1080,6 @@ void Priority_Scheduler_Preemptive(struct Run *run, struct Process *process_head
     int idle_time = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
-    // while (progress < total_burst_time && current_process != NULL)
     while ((progress - idle_time) < total_burst_time && current_process != NULL)
     {
         current_process->wait_time += (progress - current_process->last_point);
@@ -1215,13 +1125,6 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
     int progress = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
-    while (temp != NULL)
-    {
-        printf("P%d -- %d -- %d\n", temp->pid, temp->brust_time, temp->arrival_time, temp->remaining_brust_time);
-        temp = temp->next;
-    }
-    printf("\n\n\n\n");
-
     // convert to circular linkedlist. So we can loop through processes
     while (1)
     {
@@ -1261,29 +1164,15 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
             current_process->remaining_brust_time--;
         }
 
-        printf("P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
-
-        // temp = process_head;
-        // do
-        // {
-        //     printf("P%d -- %d -- %d\n", temp->pid, temp->brust_time, temp->arrival_time, temp->remaining_brust_time);
-        //     temp = temp->next;
-        // } while (temp != process_head);
-
-        // printf("P%d -- %d -- %d\n", current_process->pid, current_process->remaining_brust_time, progress);
         current_process = current_process->next;
 
         if ((progress - ideal_time) >= total_burst_time)
             break;
-        // printf("P%d -- %d -- %d\n", current_process->pid, current_process->remaining_brust_time, progress);
+
         // if the current(next process) finished execuating (remaining_brust_time == 0), get the next one
         // only works if progress < total burst time.
         while ((progress - ideal_time) < total_burst_time && current_process->remaining_brust_time <= 0 || current_process->arrival_time > progress)
         {
-            printf("*P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
-
-            // getch();
-
             current_process = current_process->next;
 
             if (current_process == process_head)
@@ -1296,13 +1185,8 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
                 }
 
                 current_process = process_head;
-                // break;
             }
         }
-
-        printf("-P%d -- %d -- %d => %d, %d (progress = %d, ideaTime = %d)\n", current_process->pid, current_process->brust_time, current_process->arrival_time, current_process->remaining_brust_time, current_process->wait_time, progress, (progress - ideal_time));
-
-        // getch();
     }
 
     // convert back to singly linkedlist
@@ -1317,10 +1201,7 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
 
         queue = queue->next;
     }
-    // exit(1);
-    // printf("DONE");
 
-    printf("\n%d\n", total_burst_time);
     if ((progress - ideal_time) == total_burst_time)
     {
         run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
