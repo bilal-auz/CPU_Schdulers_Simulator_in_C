@@ -145,8 +145,8 @@ int main(int argc, char const *argv[])
     // exit(1);
 
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
-    run->Scheduling_Method = SJF; // default  NONE
-    run->Preemtive_Mode = 0;      // default 0
+    run->Scheduling_Method = PS; // default  NONE
+    run->Preemtive_Mode = 1;     // default 0
 
     // struct Process *p;
 
@@ -1104,11 +1104,15 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
 {
     struct Process *current_process = process_head;
     int progress = 0;
+    int idle_time = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
     int i = 0;
-    for (i = 0; i < total_burst_time; i++)
+    // for (i = 0; i < total_burst_time; i++)
+    while ((progress - idle_time) < total_burst_time && current_process != NULL)
     {
+        printf("P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
+
         if (current_process->brust_time == current_process->remaining_brust_time)
         {
             current_process->wait_time = (progress - current_process->arrival_time <= 0) ? 0 : (progress - current_process->arrival_time);
@@ -1120,11 +1124,39 @@ void Priority_Scheduler(struct Run *run, struct Process *process_head)
 
         if (current_process->remaining_brust_time == 0)
         {
-            current_process = sort_priority_time(current_process->next, progress);
+            if (current_process->next != NULL)
+            {
+                printf("*->P%d: idle: %d, prog:%d, tot:%d\n", current_process->next->pid, idle_time, progress, total_burst_time);
+
+                // current_process = sort_arrival_and_priority(current_process->next);
+                current_process = sortProcesses(current_process->next);
+
+                while (current_process->arrival_time > progress)
+                {
+                    idle_time++;
+                    progress++;
+                }
+
+                printf("->P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
+
+                current_process = sort_priority_time(current_process, progress);
+                printf("-P%d: idle: %d, prog:%d, tot:%d\n", current_process->pid, idle_time, progress, total_burst_time);
+
+                // current_process = sort_priority_time(current_process->next, progress);
+            }
+
+            while (current_process->arrival_time > progress)
+            {
+                idle_time++;
+                progress++;
+            }
+
+            // current_process = sort_priority_time(current_process->next, progress);
         }
     }
 
-    if (progress == total_burst_time)
+    // if (progress == total_burst_time)
+    if ((progress - idle_time) == total_burst_time)
     {
         current_process = process_head;
         run->Avg_Wait_Time = calculate_avg_wating_time(current_process);
@@ -1134,9 +1166,11 @@ void Priority_Scheduler_Preemptive(struct Run *run, struct Process *process_head
 {
     struct Process *current_process = process_head;
     int progress = 0;
+    int idle_time = 0;
     int total_burst_time = calculate_brust_time(current_process);
 
-    while (progress < total_burst_time && current_process != NULL)
+    // while (progress < total_burst_time && current_process != NULL)
+    while ((progress - idle_time) < total_burst_time && current_process != NULL)
     {
         current_process->wait_time += (progress - current_process->last_point);
 
@@ -1150,13 +1184,22 @@ void Priority_Scheduler_Preemptive(struct Run *run, struct Process *process_head
         {
             current_process = remove_process(current_process, current_process->pid);
         }
-        else
+
+        if (current_process != NULL)
         {
+            current_process = sortProcesses(current_process);
+
+            while (current_process->arrival_time > progress)
+            {
+                idle_time++;
+                progress++;
+            }
+
             current_process = sort_priority_time(current_process, progress);
         }
     }
 
-    if (progress == total_burst_time)
+    if ((progress - idle_time) == total_burst_time)
     {
         run->Avg_Wait_Time = calculate_avg_wating_time(process_head);
     }
