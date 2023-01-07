@@ -127,12 +127,12 @@ int main(int argc, char const *argv[])
     process_head = init_the_inputs(argc, argv, InputFile, OuputFile);
 
     struct Run *run = (struct Run *)malloc(sizeof(struct Run));
-    run->Scheduling_Method = PS; // default  NONE
-    run->Preemtive_Mode = 1;     // default 0
+    run->Scheduling_Method = NONE; // default  NONE
+    run->Preemtive_Mode = 0;       // default 0
 
     while (1)
     {
-        system("cls");
+        system("clear");
 
         printf("\t\t-CPU Scheduler Simulator-\t\t\n");
         printf("1) Scheduling Method (%s)\n", get_scheduling_method_name(run->Scheduling_Method));
@@ -161,7 +161,8 @@ int main(int argc, char const *argv[])
             }
 
             printf("\n\nPress any key to go back to menu..");
-            getch();
+            getchar();
+            getchar();
             break;
         case '4':
             // if error (return 0) break, otherwise write the results to file
@@ -169,7 +170,8 @@ int main(int argc, char const *argv[])
             {
                 printf("Choose a scheduling method!");
                 printf("\n\nPress any key to go back to menu..");
-                getch();
+                getchar();
+                getchar();
                 break;
             }
 
@@ -777,7 +779,7 @@ ScheduleMethod Set_Scheduling_Method()
     char choice;
     while (1)
     {
-        system("cls");
+        system("clear");
         printf("1) NONE\n2)First-Come First-Served(FCFS)\n3)Shortest-Job-First(SJF)\n4)Priority Scheduling(PS)\n5)Round-Robin(RRS)\nOption >");
         scanf(" %c", &choice);
 
@@ -809,20 +811,22 @@ int Set_Preemtive_Mode(ScheduleMethod currentMethod)
 {
     if (currentMethod == FCFS)
     {
-        system("cls");
+        system("clear");
         printf("FCFS only supports Non-Preemprive Mode(Off)\nPress any key to go back..");
-        getch();
+        getchar();
+        getchar();
         return 0;
     }
 
     if (currentMethod == RRS)
     {
-        system("cls");
+        system("clear");
         printf("RR only supports Preemprive Mode(On)\nPress any key to go back..");
-        getch();
+        getchar();
+        getchar();
         return 1;
     }
-    system("cls");
+    system("clear");
     while (1)
     {
         char choice;
@@ -1211,7 +1215,7 @@ void Round_Robin_Scheduler(struct Run *run, struct Process *process_head)
 // Option 3: show results. Return 0 if problem, and 1 if successfully finished
 int Show_Results(struct Run *run, struct Process *process_head)
 {
-    system("cls");
+    system("clear");
     if (run->Scheduling_Method == NONE) // check if scheduling method is chosen
     {
         return 0;
@@ -1275,7 +1279,7 @@ int Show_Results(struct Run *run, struct Process *process_head)
         temp_process = temp_process->next;
     }
 
-    printf("Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
+    printf("Average Waiting Time: %.1f ms\n", run->Avg_Wait_Time); // prinf the average wait time
 
     return 1; // means successfully finished
 }
@@ -1291,7 +1295,7 @@ int Save_Results_To_File(struct Run *run, struct File *OutputFile, struct Proces
         return 0;
     }
 
-    printf("\nWriting Results to file: %s...", OutputFile->file_name);
+    printf("\nWriting Results to file: %s\n", OutputFile->file_name);
 
     fprintf(OutputFile->file, "Scheduling Method: %s ", get_scheduling_method_name(run->Scheduling_Method));
     fprintf(OutputFile->file, "- Preemptive Mode: %s\n", (run->Preemtive_Mode == 0 ? " Off " : " On "));
@@ -1302,7 +1306,7 @@ int Save_Results_To_File(struct Run *run, struct File *OutputFile, struct Proces
         process_head = process_head->next;
     }
 
-    fprintf(OutputFile->file, "Average Waiting Time: %.1f ms", run->Avg_Wait_Time); // prinf the average wait time
+    fprintf(OutputFile->file, "Average Waiting Time: %.1f ms\n", run->Avg_Wait_Time); // prinf the average wait time
 
     fclose(OutputFile->file);
 }
